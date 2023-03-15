@@ -1,14 +1,22 @@
+
 # Creating Load Balancer
+
 resource "google_compute_backend_service" "backend_service" {
-  depends_on = [google_compute_instance_group_manager.instance_group_manager]
+  depends_on = [google_compute_health_check.health-check]
   project               = var.project_id
   name                  = "${var.lb_name}-backend-service"
   protocol              = var.protocol
-  health_checks         = var.health_checks
+  health_checks         = [google_compute_health_check.health-check.id]
   load_balancing_scheme = var.load_balancing_scheme
   backend {
-    group = var.group
+    group = google_compute_instance_group_manager.instance_group_manager.instance_group
   }
+}
+resource "google_compute_global_address" "default" {
+  project      = var.project_id
+  name         = "${var.lb_name}-address"
+  ip_version   = "IPV4"
+  address_type = "EXTERNAL"
 }
 
 resource "google_compute_global_forwarding_rule" "forwarding_rule" {
@@ -18,9 +26,8 @@ resource "google_compute_global_forwarding_rule" "forwarding_rule" {
   ip_protocol           = var.ip_protocol
   load_balancing_scheme = var.load_balancing_scheme
   port_range            = var.port_range
-  ip_address            = var.ip_address
-  network               = var.network
-  depends_on = [
+  ip_address            = google_compute_global_address.default.address
+   depends_on = [
     google_compute_target_http_proxy.target-proxy
   ]
 }
@@ -50,10 +57,17 @@ resource "google_pubsub_topic" "topic" {
 }
 
 #Firebase
-
-
-
-
+resource "google_project_service" "firebaseapi" {
+  project = var.project_id
+  service = "firebase.googleapis.com"
+}
+# resource "google_firebase_project" "default" {
+#   depends_on = [
+#     google_project_service.firebaseapi
+#   ]
+#   provider = google-beta
+#   project  = "mpaas-sandbox-965286"
+# }
 #MIG
 resource "google_compute_instance_template" "instance_template" {
   project        = var.project_id
@@ -111,6 +125,17 @@ resource "google_compute_instance_group_manager" "instance_group_manager" {
   zone               = var.zone
   target_size        = var.target_size
 
+}
+resource "google_compute_health_check" "health-check" {
+  project = var.project_id
+  name = "health-check01"
+
+  timeout_sec        = 1
+  check_interval_sec = 1
+
+  http_health_check {
+    port = 80
+  }
 }
 resource "google_compute_autoscaler" "default" {
   provider = google-beta
@@ -200,7 +225,7 @@ resource "google_sql_database_instance" "instance" {
       content {
         query_insights_enabled  = insights_config.value.query_insights_enabled
         query_string_length     = insights_config.value.query_string_length
-        record_application_tags = insights_config.value.record_application_tags
+         record_application_tags = insights_config.value.record_application_tags
         record_client_address   = insights_config.value.record_client_address
       }
     }
@@ -214,6 +239,7 @@ resource "google_sql_database_instance" "instance" {
       }
     }
   }
+
 
   depends_on = [
     #google_service_networking_connection.private_vpc_connection,
@@ -242,9 +268,8 @@ resource "google_project_service" "redisapi" {
 }
 resource "google_redis_instance" "gcp_redis" {
   depends_on              = [google_project_service.redisapi]
-  for_each                = { for redis in var.rediscache_details : redis.name => redis }
-  name                    = each.value.name
-  memory_size_gb          = each.value.memory_size_gb
+  name                    = var.redis_name
+  memory_size_gb          = var.redis_memory_size_gb
   authorized_network      = var.authorized_network
   redis_configs           = var.redis_configs
   redis_version           = var.redis_version

@@ -15,10 +15,10 @@ variable "port_range" {
   type        = string
   description = "This field is used along with the target field https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_global_forwarding_rule#port_range"
 }
-variable "ip_address" {
-  type        = string
-  description = "The IP address that this forwarding rule serves. When a client sends traffic to this IP address, the forwarding rule directs the traffic to the target that you specify in the forwarding rule"
-}
+# variable "ip_address" {
+#   type        = string
+#   description = "The IP address that this forwarding rule serves. When a client sends traffic to this IP address, the forwarding rule directs the traffic to the target that you specify in the forwarding rule"
+# }
 
 variable "lb_name" {
   type        = string
@@ -33,14 +33,11 @@ variable "network" {
   type        = string
   description = "Network for  load balancer."
 }
-variable "group" {
-  type        = string
-  description = "The fully-qualified URL of an Instance Group or Network Endpoint Group resource"
-}
-variable "health_checks" {
-  type        = list(string)
-  description = "The health_checks"
-}
+
+# variable "health_checks" {
+#   type        = list(string)
+#   description = "The health_checks"
+# }
 
 ## Pub Sub variables
 
@@ -168,9 +165,13 @@ variable "encryption_key_name" {
 
 # Redis store
 //required variables
-variable "rediscache_details" {
-  description = "The rediscache details"
-  type        = list(any)
+variable "redis_name" {
+  type        = string
+  description = "Name of redis instance"
+}
+variable "redis_memory_size_gb" {
+  type        = number
+  description = "redis_memory_size_gb"
 }
 
 
